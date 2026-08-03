@@ -1,0 +1,21 @@
+{
+  "name": "time-series-maker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "手绘时序数据并导出 CSV/JSON 的轻量桌面应用（Neutralino + 原生 ES Modules）",
+  "scripts": {
+    "dev": "neu run",
+    "start": "neu run",
+    "build": "neu build",
+    "update": "neu update",
+    "pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack.ps1",
+    "test": "node tests/export.test.mjs && node tests/import.test.mjs && node tests/singleinstance.test.mjs",
+    "e2e": "node tests/e2e_cdp.mjs"
+  },
+  "devDependencies": {
+    "@neutralinojs/neu": "^11.7.2",
+    "d3": "^7.9.0",
+    "font-awesome": "^4.7.0"
+  }
+}

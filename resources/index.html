@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Time Series Maker</title>
+
+  <script>
+    // 主题与语言：在渲染前应用，避免闪烁
+    (function () {
+      try {
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('tsm-theme') || 'dark');
+        document.documentElement.lang = localStorage.getItem('tsm-lang') || 'zh-CN';
+      } catch (e) { /* 忽略隐私模式等异常 */ }
+    })();
+  </script>
+
+  <!-- D3 v7（本地，离线可用） -->
+  <script src="js/vendor/d3.min.js"></script>
+  <!-- Font Awesome 4（本地，离线可用） -->
+  <link rel="stylesheet" href="css/font-awesome.min.css">
+  <!-- 自定义样式 -->
+  <link rel="stylesheet" href="css/app.css">
+</head>
+
+<body>
+
+  <!-- 顶部栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <i class="fa fa-line-chart"></i>
+      <span>Time Series Maker</span>
+      <button type="button" class="help-btn" data-i18n-help="brandHelp">
+        ?
+      </button>
+    </div>
+    <div class="topbar-right">
+      <button type="button" id="sponsorBtn" class="icon-btn" data-i18n-title="sponsorTitle">
+        <i class="fa fa-heart-o"></i>
+      </button>
+      <button type="button" id="langBtn" class="icon-btn" data-i18n-title="langBtnTitle">
+        <i class="fa fa-globe"></i>
+      </button>
+      <button type="button" id="shortcutBtn" class="icon-btn" data-i18n-title="shortcutBtnTitle">
+        <i class="fa fa-keyboard-o"></i>
+      </button>
+      <button type="button" id="undoBtn" class="icon-btn" data-i18n-title="undoTitle" disabled>
+        <i class="fa fa-undo"></i>
+      </button>
+      <button type="button" id="redoBtn" class="icon-btn" data-i18n-title="redoTitle" disabled>
+        <i class="fa fa-repeat"></i>
+      </button>
+      <button type="button" id="themeToggle" class="icon-btn" data-i18n-title="themeTitle">
+        <i class="fa fa-sun-o"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 三栏工作台 -->
+  <div class="workbench">
+
+    <!-- ===== 左侧：设置 ===== -->
+    <aside class="sidebar sidebar-left">
+      <div class="sidebar-head">
+        <span data-i18n="settings">设置</span>
+        <button type="button" id="collapseAllBtn" class="icon-btn" data-i18n-title="collapseAllTitle">
+          <i class="fa fa-minus"></i>
+        </button>
+      </div>
+
+      <!-- 坐标轴 & 时间映射 -->
+      <section class="section" id="sec-axis">
+        <div class="section-title" data-collapse="sec-axis" role="button" tabindex="0">
+          <span data-i18n="axisSection">坐标轴与时间映射</span>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <div class="sub-title">
+            <span data-i18n="axisRangeHelpTitle">坐标轴范围</span>
+            <button type="button" class="help-btn" data-i18n-help="axisRangeHelp">?</button>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="xMin" data-i18n="xMinLabel">X 最小值</label>
+              <input type="number" class="input" id="xMin" value="0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="xMax" data-i18n="xMaxLabel">X 最大值</label>
+              <input type="number" class="input" id="xMax" value="24" min="0.1" step="0.1">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="yMin" data-i18n="yMinLabel">Y 最小值</label>
+              <input type="number" class="input" id="yMin" value="0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="yMax" data-i18n="yMaxLabel">Y 最大值</label>
+              <input type="number" class="input" id="yMax" value="100" min="0.1" step="0.1">
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary btn-block" id="updateAxis" data-i18n="updateAxis">更新坐标轴</button>
+
+          <div class="sub-title">
+            <span data-i18n="timeMapping">时间映射（可选）</span>
+            <button type="button" class="help-btn" data-i18n-help="timeMappingHelp">?</button>
+          </div>
+          <div class="field">
+            <label for="startTime" data-i18n="startTimeLabel">开始时间（X = 最小值）</label>
+            <input type="text" class="input" id="startTime"
+                   data-i18n-placeholder="dateFormatHint" placeholder="2024-01-01 08:00">
+          </div>
+          <div class="field">
+            <label for="endTime" data-i18n="endTimeLabel">结束时间（X = 最大值）</label>
+            <input type="text" class="input" id="endTime"
+                   data-i18n-placeholder="dateFormatHint" placeholder="2024-01-01 08:00">
+          </div>
+        </div>
+      </section>
+
+      <!-- 导出设置 -->
+      <section class="section" id="sec-export">
+        <div class="section-title" data-collapse="sec-export" role="button" tabindex="0">
+          <span data-i18n="exportSection">导出设置</span>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <div class="field">
+            <label for="numPoints">
+              <span data-i18n="numPointsLabel">数据点数量</span>
+              <button type="button" class="help-btn" data-i18n-help="numPointsHelp">?</button>
+            </label>
+            <input type="number" class="input" id="numPoints" data-i18n-placeholder="numPointsPlaceholder" placeholder="留空则导出全部" min="2" step="1">
+          </div>
+          <div class="field">
+            <label for="fileName">
+              <span data-i18n="fileNameLabel">文件名</span>
+              <button type="button" class="help-btn" data-i18n-help="fileNameHelp">?</button>
+            </label>
+            <input type="text" class="input" id="fileName" value="data" placeholder="data">
+          </div>
+        </div>
+      </section>
+
+      <!-- 参考线 -->
+      <section class="section" id="sec-reflines">
+        <div class="section-title" data-collapse="sec-reflines" role="button" tabindex="0">
+          <span data-i18n="refLinesSection">参考线</span>
+          <button type="button" class="help-btn" data-i18n-help="refLinesHelp">?</button>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <div class="field">
+            <label for="hLine" data-i18n="hLineLabel">水平线（Y 值）</label>
+            <input type="number" class="input" id="hLine" data-i18n-placeholder="hLinePlaceholder" placeholder="如 50" step="0.1">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="vLine1" data-i18n="vLine1Label">垂直线 1（X）</label>
+              <input type="number" class="input" id="vLine1" data-i18n-placeholder="vLine1Placeholder" placeholder="如 8" step="0.1">
+            </div>
+            <div class="field">
+              <label for="vLine2" data-i18n="vLine2Label">垂直线 2（X）</label>
+              <input type="number" class="input" id="vLine2" data-i18n-placeholder="vLine2Placeholder" placeholder="如 16" step="0.1">
+            </div>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="btn btn-info" id="updateRefLines" data-i18n="updateRefLines">更新参考线</button>
+            <button type="button" class="btn btn-default" id="clearRefLines" data-i18n="clearRefLines">清除</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 噪声 -->
+      <section class="section" id="sec-noise">
+        <div class="section-title" data-collapse="sec-noise" role="button" tabindex="0">
+          <span data-i18n="noiseSection">噪声</span>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <div class="field">
+            <label for="noiseType">
+              <span data-i18n="noiseTypeLabel">噪声类型</span>
+              <button type="button" class="help-btn" data-i18n-help="noiseTypeHelp">?</button>
+            </label>
+            <select class="input" id="noiseType">
+              <option value="gaussian" data-i18n="gaussian">高斯噪声</option>
+              <option value="uniform" data-i18n="uniform">均匀噪声</option>
+              <option value="saltpepper" data-i18n="saltpepper">椒盐噪声</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="noiseLevel" data-i18n="noiseLevelLabel">噪声强度（%）</label>
+            <input type="number" class="input" id="noiseLevel" value="5" min="0" max="100" step="0.5">
+          </div>
+          <div class="toolbar">
+            <button type="button" class="btn btn-warning" id="applyNoise" data-i18n="applyNoise">添加噪声</button>
+            <button type="button" class="btn btn-success" id="restoreOriginal" data-i18n="restoreOriginal">还原原始</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 图片临摹 -->
+      <section class="section" id="sec-image">
+        <div class="section-title" data-collapse="sec-image" role="button" tabindex="0">
+          <span data-i18n="imageSection">图片临摹</span>
+          <span id="imageLockBadge" class="badge-green" data-i18n="lockedBadge" hidden>已锁定</span>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <input type="file" id="bgImageFile" accept="image/*" hidden>
+          <div class="toolbar">
+            <button type="button" class="btn btn-default" id="loadImageBtn">
+              <i class="fa fa-picture-o"></i> <span data-i18n="loadImage">选择图片</span>
+            </button>
+            <button type="button" class="btn btn-danger" id="removeImageBtn" disabled>
+              <i class="fa fa-trash"></i> <span data-i18n="removeImage">移除</span>
+            </button>
+            <button type="button" class="help-btn" data-i18n-help="imageHelp">?</button>
+          </div>
+          <div class="opacity-row">
+            <label for="imgOpacity" data-i18n="imgOpacityLabel">背景透明度</label>
+            <input type="range" id="imgOpacity" min="0" max="1" step="0.05" value="0.5">
+            <span id="imgOpacityVal">50%</span>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="btn btn-primary" id="lockImageBtn" disabled>
+              <i class="fa fa-lock"></i> <span data-i18n="lockImage">锁定（开始临摹）</span>
+            </button>
+            <button type="button" class="btn btn-default" id="unlockImageBtn" disabled>
+              <i class="fa fa-unlock"></i> <span data-i18n="unlockImage">解锁</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ===== 中央：画布 ===== -->
+    <main class="canvas-area">
+      <div id="canvas"></div>
+      <div class="statusbar">
+        <strong data-i18n="statusLabel">状态：</strong><span id="curveStatus" data-i18n="ready">准备绘制</span>
+      </div>
+    </main>
+
+    <!-- ===== 右侧：历史 / 参考数据 / 导出 ===== -->
+    <aside class="sidebar sidebar-right">
+
+      <!-- 历史曲线 -->
+      <section class="section" id="sec-history">
+        <div class="section-title" data-collapse="sec-history" role="button" tabindex="0">
+          <span data-i18n="historySection">历史曲线</span>
+          <button type="button" class="help-btn" data-i18n-help="historyHelp">?</button>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <div class="toolbar">
+            <button type="button" class="btn btn-success btn-sm" id="preserveCurveBtn">
+              <i class="fa fa-save"></i> <span data-i18n="saveCurve">保存当前</span>
+            </button>
+            <button type="button" class="btn btn-default btn-sm" id="selectAllBtn" data-i18n="selectAll">全选</button>
+            <button type="button" class="btn btn-default btn-sm" id="selectNoneBtn" data-i18n="selectNone">取消全选</button>
+            <button type="button" class="btn btn-danger btn-sm" id="clearHistoryBtn">
+              <i class="fa fa-trash"></i> <span data-i18n="clearHistory">清空</span>
+            </button>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </div>
+      </section>
+
+      <!-- 参考数据 -->
+      <section class="section" id="sec-import">
+        <div class="section-title" data-collapse="sec-import" role="button" tabindex="0">
+          <span data-i18n="importSection">参考数据</span>
+          <button type="button" class="help-btn" data-i18n-help="importHelp">?</button>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <input type="file" id="importFile" accept=".csv,.json" hidden>
+          <div class="toolbar">
+            <button type="button" class="btn btn-default" id="importDataBtn">
+              <i class="fa fa-upload"></i> <span data-i18n="importData">导入 CSV / JSON</span>
+            </button>
+            <button type="button" class="btn btn-default" id="clearImportedBtn" data-i18n="clearImported">清除导入</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 导出 -->
+      <section class="section" id="sec-export-actions">
+        <div class="section-title" data-collapse="sec-export-actions" role="button" tabindex="0">
+          <span data-i18n="exportSection2">导出</span>
+          <button type="button" class="help-btn" data-help-html="helpFormat">?</button>
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        <div class="section-body">
+          <div class="toolbar toolbar-col">
+            <button type="button" class="btn btn-info btn-block disabled" id="exportCsv">
+              <i class="fa fa-file-o"></i> <span data-i18n="exportCsv">导出所选曲线 CSV</span>
+            </button>
+            <button type="button" class="btn btn-info btn-block disabled" id="exportJSON">
+              <i class="fa fa-file-o"></i> <span data-i18n="exportJson">导出所选曲线 JSON</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- 语言切换菜单 -->
+  <div id="langPanel" class="lang-panel" hidden>
+    <button type="button" class="lang-item" data-lang="zh-CN">简体中文</button>
+    <button type="button" class="lang-item" data-lang="en">English</button>
+    <button type="button" class="lang-item" data-lang="ru">Русский</button>
+    <button type="button" class="lang-item" data-lang="zh-TW">繁體中文</button>
+    <button type="button" class="lang-item" data-lang="ja">日本語</button>
+    <button type="button" class="lang-item" data-lang="ko">한국어</button>
+  </div>
+
+  <!-- 快捷键汇总悬浮窗 -->
+  <div id="shortcutPanel" class="shortcut-panel" hidden>
+    <div class="shortcut-title" data-i18n="shortcutTitle">快捷键</div>
+    <table>
+      <tr><td>Ctrl + Z</td><td data-i18n="sUndo">撤销</td></tr>
+      <tr><td>Ctrl + Y / Ctrl + Shift + Z</td><td data-i18n="sRedo">重做</td></tr>
+      <tr><td>Ctrl + 滚轮</td><td data-i18n="sZoom">缩放画布</td></tr>
+      <tr><td>Shift + 滚轮</td><td data-i18n="sPan">左右平移画布</td></tr>
+      <tr><td>Ctrl + 0</td><td data-i18n="sReset">复位缩放 / 平移</td></tr>
+    </table>
+  </div>
+
+  <!-- 帮助悬浮框（共享单个，定位到被点击的问号） -->
+  <div id="helpPopover" class="help-popover" hidden></div>
+
+  <!-- 导出格式说明模板（由问号按钮引用） -->
+  <template id="helpFormat">
+    <div data-i18n="exportHelpIntro"></div>
+    <pre data-i18n="exportHelpPre"></pre>
+    <div data-i18n="exportHelpOutro"></div>
+  </template>
+
+  <!-- Neutralino 客户端（桌面端注入原生能力；浏览器中不初始化） -->
+  <script src="js/neutralino.js"></script>
+
+  <!-- 主逻辑（ES Module） -->
+  <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

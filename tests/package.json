@@ -1,0 +1,5 @@
+{
+  "name": "timeseriesmaker-tests",
+  "private": true,
+  "type": "module"
+}
