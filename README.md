@@ -2,6 +2,12 @@
 
 A lightweight desktop app for drawing time series curves by hand and exporting them as **CSV / JSON** — built with [Neutralino.js](https://neutralino.js.org/) (reuses the system WebView2, no bundled Chromium, ~4 MB package) and vanilla ES Modules + [D3](https://d3js.org/) v7.
 
+<p align="center">
+  <img src="resources/img/screenshot.png" alt="Main interface" width="720">
+</p>
+
+*Main interface: draw curves on the center canvas, adjust settings in the left panel, and manage / export history curves on the right.*
+
 ## Features
 
 - Hand-draw curves with the mouse; the canvas resizes with the window (Ctrl+wheel to zoom, Shift+wheel to pan)
@@ -68,6 +74,12 @@ MIT License — see [LICENSE](LICENSE).
 # Time Series Maker（中文）
 
 用鼠标手绘时序曲线，并导出为 CSV / JSON 的轻量桌面应用。基于 [Neutralino.js](https://neutralino.js.org/)（复用系统 WebView2，无 Chromium 捆绑，安装包约 4MB）+ 原生 ES Modules + [D3](https://d3js.org/) v7 构建。
+
+<p align="center">
+  <img src="resources/img/screenshot.png" alt="主界面" width="720">
+</p>
+
+*主界面：中间画布手绘曲线，左侧为设置面板，右侧为历史曲线管理与导出。*
 
 ## 功能
 
