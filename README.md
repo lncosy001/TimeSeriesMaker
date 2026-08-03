@@ -126,6 +126,15 @@ scripts/pack.ps1      便携版打包脚本
 tests/                单元测试与端到端测试
 ```
 
+## 赞助支持
+
+如果你喜欢这个工具，欢迎扫码支持一下，感谢你的支持，我会更有动力持续完善它！
+
+<p align="center">
+  <img src="resources/img/qr1.png" width="200" alt="收款码 1">
+  <img src="resources/img/qr2.jpg" width="200" alt="收款码 2">
+</p>
+
 ## License
 
 MIT License，详见 [LICENSE](LICENSE)。
